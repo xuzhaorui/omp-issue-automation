@@ -35,8 +35,8 @@ public final class Sandbox {
         if (os.contains("mac")) {
             Path executable = Path.of("/usr/bin/sandbox-exec");
             if (!Files.isExecutable(executable)) throw new IOException("sandbox-exec is unavailable");
-            StringBuilder profile = new StringBuilder("(version 1)(deny default)(allow process-exec)(allow process-fork)(allow sysctl-read)(allow file-read-metadata)(allow file-read-data (literal \"/\"))");
-            profile.append("(allow file-read* (subpath \"/System\") (subpath \"/usr\") (subpath \"/bin\") (subpath \"/sbin\") (subpath \"/opt/homebrew\") (subpath \"/Library/Java/JavaVirtualMachines\") (literal \"/dev/null\") (literal \"/dev/zero\") (literal \"/dev/random\") (literal \"/dev/urandom\") (subpath ").append(quote(root)).append(") (subpath ").append(quote(temp)).append(")");
+            StringBuilder profile = new StringBuilder("(version 1)(deny default)(allow process-exec)(allow process-fork)(allow process-info* (target same-sandbox))(allow signal (target same-sandbox))(allow sysctl-read)(allow file-read-metadata)(allow file-read-data (literal \"/\"))");
+            profile.append("(allow file-read* (subpath \"/System\") (subpath \"/usr\") (subpath \"/bin\") (subpath \"/sbin\") (subpath \"/opt/homebrew\") (subpath \"/Library/Java/JavaVirtualMachines\") (subpath \"/Library/Developer/CommandLineTools\") (literal \"/dev/null\") (literal \"/dev/zero\") (literal \"/dev/random\") (literal \"/dev/urandom\") (subpath ").append(quote(root)).append(") (subpath ").append(quote(temp)).append(")");
             for (Path allowed : readOnly) profile.append(" (subpath ").append(quote(allowed)).append(")");
             profile.append(")(allow file-write* (subpath ").append(quote(root)).append(") (subpath ").append(quote(temp)).append(") (literal \"/dev/null\"))(deny network*)");
             argv.addAll(List.of(executable.toString(), "-p", profile.toString(), "--"));
@@ -56,6 +56,9 @@ public final class Sandbox {
             argv.addAll(List.of("--chdir", root.toString(), "--setenv", "HOME", home.toString(), "--setenv", "TMPDIR", tmp.toString(), "--setenv", "PATH", testPath));
             if (java != null) argv.addAll(List.of("--setenv", "JAVA_HOME", java.toString()));
             if (maven != null) argv.addAll(List.of("--setenv", "MAVEN_HOME", maven.toString()));
+            if (java != null) argv.addAll(List.of("--setenv", "OMP_SANDBOX_JAVA", java.toString()));
+            if (maven != null) argv.addAll(List.of("--setenv", "OMP_SANDBOX_MAVEN", maven.toString()));
+            if (repository != null) argv.addAll(List.of("--setenv", "OMP_SANDBOX_REPOSITORY", repository.toString()));
             argv.add("--");
         } else throw new IOException("No supported test sandbox for " + os);
         argv.addAll(command);
@@ -65,6 +68,9 @@ public final class Sandbox {
         env.put("PATH", testPath);
         if (java != null) env.put("JAVA_HOME", java.toString());
         if (maven != null) env.put("MAVEN_HOME", maven.toString());
+        if (java != null) env.put("OMP_SANDBOX_JAVA", java.toString());
+        if (maven != null) env.put("OMP_SANDBOX_MAVEN", maven.toString());
+        if (repository != null) env.put("OMP_SANDBOX_REPOSITORY", repository.toString());
         env.put("LANG", "C.UTF-8");
         return Runner.run(argv, root, log, timeout, env);
     }
@@ -75,12 +81,16 @@ public final class Sandbox {
         Path home = Path.of(System.getProperty("user.home")).toRealPath();
         Path sdk = home.resolve(".sdkman/candidates").resolve(candidate);
         boolean sdkAllowed = Files.isDirectory(sdk) && path.startsWith(sdk.toRealPath());
-        if (!sdkAllowed && !path.startsWith(Path.of("/usr")) && !path.startsWith(Path.of("/opt/homebrew")) &&
+        String inherited = System.getenv("OMP_SANDBOX_" + candidate.toUpperCase(Locale.ROOT));
+        boolean inheritedAllowed = inherited != null && path.equals(Path.of(inherited).toRealPath());
+        if (!sdkAllowed && !inheritedAllowed && !path.startsWith(Path.of("/usr")) && !path.startsWith(Path.of("/opt/homebrew")) &&
             !path.startsWith(Path.of("/Library/Java/JavaVirtualMachines")))
             throw new IOException("Untrusted " + variable + " toolchain location");
         return path;
     }
     private static Path trustedRepository() throws IOException {
+        String inherited = System.getenv("OMP_SANDBOX_REPOSITORY");
+        if (inherited != null) return Path.of(inherited).toRealPath();
         Path home = Path.of(System.getProperty("user.home")).toRealPath();
         Path repository = home.resolve(".m2/repository");
         if (!Files.isDirectory(repository)) return null;
