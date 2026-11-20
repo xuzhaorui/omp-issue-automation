@@ -1,0 +1,26 @@
+# 复制到仓库外的私有位置，按本机情况修改；不要在此放令牌。
+stateDir: ~/.local/state/omp-issue-automation
+pollSeconds: 60
+concurrency: 2
+maxAttempts: 3
+retrySeconds: 60
+omp:
+  executable: omp
+  model: ""
+  timeoutSeconds: 1800
+  maxCost: 5
+projects:
+  example:
+    path: ~/code/example
+    repo: example-owner/example
+    branch: main
+    aliases: [示例, app]
+    tests:
+      - [mvn, verify]
+  automation:
+    path: ~/code/omp-issue-automation
+    repo: example-owner/omp-issue-automation
+    branch: main
+    self: true
+    tests:
+      - [mvn, verify]

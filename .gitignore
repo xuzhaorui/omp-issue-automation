@@ -1,0 +1,12 @@
+/target/
+/.idea/
+*.iml
+.DS_Store
+.env
+.env.*
+/config/projects.yml
+/config/*.local.yml
+/.state/
+/.worktrees/
+*.log
+*.pid
