@@ -27,6 +27,8 @@ public final class Runner {
         Runtime.getRuntime().addShutdownHook(shutdown);
         Tail tail = new Tail(131072);
         try {
+            // OMP reads piped stdin before processing @prompt arguments; explicitly deliver EOF.
+            process.getOutputStream().close();
             if (pidFile != null) Json.write(pidFile, Map.of("pid",process.pid(),"started",process.info().startInstant().orElse(Instant.EPOCH).toString()));
             try (var readers = Executors.newVirtualThreadPerTaskExecutor()) {
                 Future<?> output = readers.submit(() -> {

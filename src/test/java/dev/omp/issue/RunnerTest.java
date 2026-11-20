@@ -14,6 +14,10 @@ class RunnerTest {
         var result=Runner.run(List.of("/usr/bin/printf","%s",input),temp,temp.resolve("command.log"),5,Map.of());
         assertEquals(input,result.requireSuccess());assertFalse(Files.exists(temp.resolve("should-not-exist")));
     }
+    @Test void unattendedCommandsReceiveEofInsteadOfWaitingForInteractiveInput() throws Exception {
+        var result=Runner.run(List.of("/bin/sh","-c","cat >/dev/null; printf eof-received"),temp,temp.resolve("stdin.log"),5,Map.of());
+        assertEquals(0,result.exit());assertEquals("eof-received",result.output());
+    }
     @Test void keepsFullLogsWhileBoundingReturnedOutput() throws Exception {
         Path log=temp.resolve("large.log");
         var result=Runner.run(List.of("/bin/sh","-c","head -c 200000 /dev/zero | tr '\\000' x"),temp,log,5,Map.of());
