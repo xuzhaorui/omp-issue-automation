@@ -100,7 +100,7 @@ public final class Worker {
         throw new IOException("No trusted project test command configured or detected");
     }
     private static Path session(Path dir) throws IOException {
-        try (var paths = Files.walk(dir)) {
+        try (var paths = Files.list(dir)) {
             List<Path> found = paths.filter(Files::isRegularFile).filter(p -> p.toString().endsWith(".jsonl")).toList();
             if (found.size() != 1) throw new IOException("Expected exactly one task-local OMP session, found " + found.size());
             return found.getFirst();

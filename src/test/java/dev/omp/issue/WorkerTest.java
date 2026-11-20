@@ -76,6 +76,8 @@ class WorkerTest {
             for a do case "$a" in --session-dir=*) session=${a#--session-dir=} ;; esac; done
             printf 'ready:%s\\nused:%s\\n' "$OMP_GUARD_NONCE" "$OMP_GUARD_NONCE" > "$OMP_GUARD_MARKER"
             echo '{}' > "$session/session.jsonl"
+            mkdir -p "$session/session"
+            echo '{}' > "$session/session/__advisor.jsonl"
             echo '{"type":"message_end","message":{"role":"assistant","usage":{"input":10,"cost":{"total":0.2}},"content":[{"type":"text","text":"edited"}]}}'
             """);
         assertTrue(fake.toFile().setExecutable(true));
