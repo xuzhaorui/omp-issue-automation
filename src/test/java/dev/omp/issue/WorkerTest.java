@@ -110,7 +110,7 @@ class WorkerTest {
         Path root = Files.createDirectory(temp.resolve("work"));
         Path secret = Files.writeString(temp.resolve("secret"), "sensitive").toRealPath();
         Path escaped = temp.resolve("escaped").toAbsolutePath();
-        Runner.Result result = Sandbox.run(List.of("/bin/sh", "-c", "test ! -r \"$1\" && ! echo bad > \"$2\" && echo allowed > inside", "sh", secret.toString(), escaped.toString()), root, temp.resolve("scratch"), temp.resolve("sandbox.log"), 20);
+        Runner.Result result = Sandbox.run(List.of("/bin/sh", "-c", "test ! -r \"$1\" && (echo bad > \"$2\" 2>/dev/null || :) && echo allowed > inside", "sh", secret.toString(), escaped.toString()), root, temp.resolve("scratch"), temp.resolve("sandbox.log"), 20);
         assertEquals(0, result.exit(), result.output());
         assertFalse(Files.exists(escaped));
         assertEquals("allowed\n", Files.readString(root.resolve("inside")));
