@@ -61,10 +61,10 @@ public final class Worker {
                 collectUsage(log, usage);
                 writeUsage(job, usage);
             }
+            result.requireSuccess();
             if (!Files.exists(marker)) throw new IOException("OMP guard did not load");
             String marks = Files.readString(marker);
             if (!marks.contains("ready:" + nonce + "\n") || !marks.contains("used:" + nonce + "\n")) throw new IOException("OMP guard was not activated and used");
-            result.requireSuccess();
             summary = lastSummary(log);
             Double sum = cost(usage);
             known = sum != null;

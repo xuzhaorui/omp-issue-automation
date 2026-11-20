@@ -104,6 +104,16 @@ class WorkerTest {
         assertTrue(Json.read(job.resolve("usage.json")).path("totalCost").isNull());
     }
 
+    @Test void providerFailuresAreNotMisreportedAsMissingGuardTools() throws Exception {
+        Path base = Files.createDirectory(temp.resolve("base"));
+        Path root = Files.createDirectory(temp.resolve("workspace"));
+        Path fake = Files.writeString(temp.resolve("fake-omp"), "#!/bin/sh\necho 'provider quota exceeded'\nexit 23\n");
+        assertTrue(fake.toFile().setExecutable(true));
+        Config.Project project = new Config.Project("p", base, "owner/repo", "main", List.of(), List.of(List.of("true")), false);
+        Config config = new Config(temp, 60, 1, 1, 1, new Config.Omp(fake.toString(), "", 20, 1), Map.of());
+        IOExceptionAssert.assertThrows(() -> new Worker(config).run(project, Json.MAPPER.readTree("{}"), temp.resolve("job"), root), "provider quota exceeded");
+    }
+
     @Test void sandboxCannotReadOutsideOrWriteOutside() throws Exception {
         String os = System.getProperty("os.name").toLowerCase(Locale.ROOT);
         assumeTrue(os.contains("mac") && Files.isExecutable(Path.of("/usr/bin/sandbox-exec")) || os.contains("linux") && Files.isExecutable(Path.of("/usr/bin/bwrap")));
